@@ -152,24 +152,32 @@ class RecBms:
         add1 = response[2]
         length = response[4]
         crcis = response[-3] << 8 | response[-2]
-        print(add0, add1, length, response,  hex(crcis), len(response))
-        print(hex(crc16v(response[1:-3])))
+        # print(add0, add1, length, response,  hex(crcis), len(response))
+        # print(hex(crc16v(response[1:-3])))
         response = response[5:]
         x = self.parse_float(response, 0 * 4)
         y = self.parse_float(response, 1 * 4)
         self.min_cell_voltage = self.parse_float(response, 2 * 4)
         self.max_cell_voltage = self.parse_float(response, 3 * 4)
-        u = self.parse_float(response, 4 * 4)
+        self.current = self.parse_float(response, 4 * 4)
         v = self.parse_float(response, 5 * 4)
         self.pack_voltage = self.parse_float(response, 6 * 4)
         self.state_of_charge = self.parse_float(response, 7 * 4)
         self.state_of_health = self.parse_float(response, 8 * 4)
-        print(x, y, u, v)
+        # print(x, y, v)
+        print(
+            f"{self.pack_voltage:.1f}V " +
+            f"{self.min_cell_voltage:.2f}V-" +
+            f"{self.max_cell_voltage:.2f}V " +
+            f"{self.state_of_charge * 100:.1f}% " +
+            f"{self.current:.1f}A " +
+            f"Health {self.state_of_health * 100:.1f}%"
+            )
         return True
         
     def parse_float(self, data, offset):
         result = struct.unpack('<f', data[offset:offset+4])[0]
-        print(result)
+        # print(result)
         return result
 
     def render(self, label_voltage, label_min, label_max, 
