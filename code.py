@@ -178,8 +178,8 @@ class RecBms:
         label_voltage.text =  f"{self.pack_voltage:>4.1f}V"
         label_min.text =  f"Min {self.min_cell_voltage:.2f}V"
         label_max.text =  f"Max {self.max_cell_voltage:.2f}V"
-        label_charge.text = f"{self.state_of_charge:>4.0f}%"
-        label_health.text = f"Health {self.state_of_health:0.0f}%"
+        label_charge.text = f"{self.state_of_charge * 100:>4.1f}%"
+        label_health.text = f"Health {self.state_of_health * 100:0.1f}%"
         label_ampere.text = f"{self.current:>3.0f}A"
         httpserver.content = ("<html><title>LAK17 BMS</title>" +
             "<body style='font-size:50pt'>" +
@@ -192,6 +192,9 @@ class RecBms:
 
 class HttpServer:
     def __init__(self):
+        self.server = None
+        
+    def start(self):
         self.pool = socketpool.SocketPool(wifi.radio)
         self.server = Server(self.pool, "/static", debug=True)
         self.server.start(str(wifi.radio.ipv4_address))
@@ -204,12 +207,18 @@ class HttpServer:
         return Response(request, self.content, content_type="text/html")
 
     def poll(self):
-        self.server.poll()
+        if self.server:
+            self.server.poll()
 
 class NetworkSwitcher:
     NETWORKS = {
+        "FCC" : "ahh7thaeRo", 
+        "QBH" : "12372393"
         }
-
+    
+    def __init__(self, httpserver):
+        self.httpserver = httpserver
+    
     def check_network(self):
         if wifi.radio.connected:
             return
@@ -223,6 +232,7 @@ class NetworkSwitcher:
                 print("Trying to connect to", network.ssid)
                 wifi.radio.connect(network.ssid, password)
                 print("Connected to", network.ssid)
+                self.httpserver.start()
                 return
         
         wifi.radio.stop_scanning_networks()
@@ -269,7 +279,7 @@ root.append(label_status)
 httpserver = HttpServer()
 bms = RecBms()
 adc = analogio.AnalogIn(board.BATTERY)
-network_switcher = NetworkSwitcher()
+network_switcher = NetworkSwitcher(httpserver)
 while True:
     httpserver.poll()
     success = bms.query_lcd1()
